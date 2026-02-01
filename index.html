@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raise a Yellow Cube</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #2c3e50;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        /* UI Layer */
+        #ui-layer { position: absolute; top: 20px; left: 20px; z-index: 10; }
+        #settings-layer { position: absolute; top: 20px; right: 20px; z-index: 10; display: flex; gap: 10px; }
+
+        .bar-container {
+            width: 200px; height: 20px; background: #444;
+            border-radius: 10px; margin-bottom: 10px; overflow: hidden; border: 2px solid #000;
+        }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        #hunger-fill { background: #e67e22; width: 100%; }
+        #thirst-fill { background: #3498db; width: 100%; }
+
+        /* Game Objects */
+        #gold-square, #fren-square, #fren2-square { position: absolute; width: 50px; height: 50px; cursor: pointer; z-index: 5; }
+        #gold-square { background-color: #f1c40f; border: 2px solid #d4ac0d; }
+        #fren-square { background-color: #2ecc71; border: 2px solid #27ae60; display: none; }
+        #fren2-square { background-color: #e74c3c; border: 2px solid #c0392b; display: none; }
+
+        .prop { position: absolute; display: none; z-index: 1; }
+        #fan-display { top: 10px; left: 50%; transform: translateX(-50%); width: 80px; }
+        #table-display { bottom: 0; left: 50%; transform: translateX(-50%); width: 300px; }
+        #clock-display { top: 50%; right: 20px; transform: translateY(-50%); width: 60px; }
+        #chair-display { top: 50%; left: 20px; transform: translateY(-50%); width: 70px; }
+
+        #pc-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); cursor: pointer; z-index: 2; }
+        #pc-image { width: 180px; height: auto; border-radius: 8px; }
+
+        /* Scrollable Menu */
+        #upgrade-menu {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(15, 15, 15, 0.98); border-radius: 15px; border: 2px solid #ecf0f1;
+            z-index: 100; min-width: 360px; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .menu-header { padding: 20px 20px 10px 20px; text-align: center; border-bottom: 1px solid #333; }
+        .menu-content {
+            max-height: 400px; overflow-y: auto; padding: 20px;
+            scrollbar-width: thin; scrollbar-color: #27ae60 #1a1a1a;
+        }
+        .menu-content::-webkit-scrollbar { width: 8px; }
+        .menu-content::-webkit-scrollbar-thumb { background: #27ae60; border-radius: 10px; }
+
+        .ultra-section { display: none; border-top: 2px dashed #9b59b6; margin-top: 20px; padding-top: 10px; }
+
+        .close-x { position: absolute; top: 10px; right: 15px; font-size: 24px; color: #7f8c8d; cursor: pointer; z-index: 101; }
+        .btn {
+            display: block; width: 100%; padding: 10px; margin: 8px 0; background: #27ae60;
+            color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 5px;
+        }
+        .btn:hover { background: #2ecc71; }
+        .btn:disabled { background: #34495e; color: #7f8c8d; cursor: not-allowed; }
+        .ultra-btn { background: #8e44ad; }
+        .ultra-btn:hover { background: #9b59b6; }
+
+        #game-over { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div>Money: $<span id="money-display">0</span></div>
+        <div id="ultra-coin-ui" style="display:none; color: #9b59b6; font-weight: bold;">Ultra Coins: <span id="ultra-display">0</span></div>
+        <div style="margin-top: 10px; font-size: 0.8em;">Hunger</div>
+        <div class="bar-container"><div id="hunger-fill" class="bar-fill"></div></div>
+        <div style="font-size: 0.8em;">Thirst</div>
+        <div class="bar-container"><div id="thirst-fill" class="bar-fill"></div></div>
+    </div>
+
+    <div id="settings-layer">
+        <button class="btn" style="background:#2980b9; width:auto;" onclick="saveGame()">Save</button>
+        <button class="btn" style="background:#c0392b; width:auto;" onclick="confirmDelete()">Reset</button>
+    </div>
+
+    <img id="fan-display" class="prop" src="https://via.placeholder.com/80/ffffff/000000?text=FAN">
+    <img id="table-display" class="prop" src="https://via.placeholder.com/300x100/8b4513/ffffff?text=TABLE">
+    <img id="clock-display" class="prop" src="https://via.placeholder.com/60/ffffff/000000?text=CLOCK">
+    <img id="chair-display" class="prop" src="https://via.placeholder.com/70x120/4e342e/ffffff?text=CHAIR">
+
+    <div id="gold-square"></div>
+    <div id="fren-square"></div>
+    <div id="fren2-square"></div>
+
+    <div id="pc-container" onclick="toggleMenu(true)">
+        <img id="pc-image" src="https://via.placeholder.com/180x150/000000/ffffff?text=MY+PC" alt="PC">
+    </div>
+
+    <div id="upgrade-menu">
+        <span class="close-x" onclick="toggleMenu(false)">&times;</span>
+        <div class="menu-header">
+            <h2 style="margin: 0;">Shop</h2>
+            <p>Balance: $<span id="menu-money">0</span></p>
+        </div>
+        <div class="menu-content">
+            <button class="btn" onclick="buySurvival('food')">Buy Food ($20)</button>
+            <button class="btn" onclick="buySurvival('water')">Buy Water ($20)</button>
+            <hr style="border:0; border-top:1px solid #333;">
+            <button id="buy-slow" class="btn" onclick="buyUpgrade('slow', 35)">Slower Square ($35)</button>
+            <button id="buy-cooler" class="btn" onclick="buyUpgrade('cooler', 75)">Cooler Yellow ($75)</button>
+            <button id="buy-fren" class="btn" onclick="buyUpgrade('fren', 100)">Buy Fren ($100)</button>
+            <button id="buy-fan" class="btn" onclick="buyUpgrade('fan', 175)">Electric Fan ($175)</button>
+            <button id="buy-feeder" class="btn" onclick="buyUpgrade('feeder', 310)">Auto Feeder ($310)</button>
+            <button id="buy-invest" class="btn" onclick="buyUpgrade('invest', 500)">Investment ($500)</button>
+            <button id="buy-table" class="btn" onclick="buyUpgrade('table', 750)">Table ($750)</button>
+            <button id="buy-autoclick" class="btn" onclick="buyUpgrade('autoclick', 1350)">Auto-Clicker ($1350)</button>
+            <button id="buy-clock" class="btn" onclick="buyUpgrade('clock', 2000)">Clock ($2000)</button>
+            <button id="buy-chair" class="btn" onclick="buyUpgrade('chair', 3500)">Chair ($3500)</button>
+            <button id="buy-fren2" class="btn" onclick="buyUpgrade('fren2', 8000)">Fren 2 ($8000)</button>
+            <button id="buy-autoupgrade" class="btn" onclick="buyUpgrade('autoupgrade', 12500)">Autoclicker Upgrade ($12500)</button>
+            <button id="buy-ultracoin" class="btn" onclick="buyUpgrade('ultracoin', 19000)">Ultra Coin Investment ($19000)</button>
+            <button id="buy-stock" class="btn" onclick="buyUpgrade('stock', 100000)">Stock Investment ($100k)</button>
+            <button id="buy-finality" class="btn" onclick="buyUpgrade('finality', 1000000)">Finality ($1M)</button>
+
+            <div id="ultra-section" class="ultra-section">
+                <h3 style="color:#9b59b6; text-align:center;">ULTRA SHOP</h3>
+                <button id="buy-ultraless" class="btn ultra-btn" onclick="buyUltraUpgrade('ultraless', 3)">Less Resource Consumption (3 UC)</button>
+                <button id="buy-ultrafaster" class="btn ultra-btn" onclick="buyUltraUpgrade('ultrafaster', 4)">Faster Ultra Coins (4 UC)</button>
+                <button id="buy-ultramore" class="btn ultra-btn" onclick="buyUltraUpgrade('ultramore', 7)">More Ultra Coins (7 UC)</button>
+                <button id="buy-ultraclicker" class="btn ultra-btn" onclick="buyUltraUpgrade('ultraclicker', 11)">Ultra Clicker (11 UC)</button>
+                <button id="buy-ultramoneyadder" class="btn ultra-btn" onclick="buyUltraUpgrade('ultramoneyadder', 13)">Money Adder (13 UC)</button>
+                <button id="buy-ultramultiplier" class="btn ultra-btn" onclick="buyUltraUpgrade('ultramultiplier', 15)">Ultra Multiplier (15 UC)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h1 style="color: #e74c3c; font-size: 3rem;">GAME OVER</h1>
+        <button class="btn" onclick="location.reload()" style="width: 250px;">Restart</button>
+    </div>
+
+    <script>
+        let gameState = {
+            money: 0, ultraCoins: 0, hunger: 100, thirst: 100,
+            hasSlow: false, hasCooler: false, hasFren: false, hasFan: false,
+            hasFeeder: false, hasInvest: false, hasTable: false,
+            hasAutoclick: false, hasClock: false, hasChair: false,
+            hasFren2: false, hasAutoupgrade: false, hasUltracoin: false,
+            hasStock: false, hasFinality: false,
+            hasUltrafaster: false, hasUltramore: false, hasUltraless: false,
+            hasUltraclicker: false, hasUltramoneyadder: false, hasUltramultiplier: false
+        };
+
+        let gameActive = true;
+        let autoClickInterval = null;
+        let ultraInterval = null;
+
+        class Mover {
+            constructor(element, speed) {
+                this.el = element; this.baseSpeed = speed;
+                this.x = Math.random() * 200; this.y = Math.random() * 200;
+                this.dx = speed; this.dy = speed;
+            }
+            update() {
+                let s = (this.el.id === 'gold-square' && gameState.hasSlow) ? this.baseSpeed * 0.6 : this.baseSpeed;
+                this.dx = (this.dx > 0 ? s : -s); this.dy = (this.dy > 0 ? s : -s);
+                this.x += this.dx; this.y += this.dy;
+                if(this.x <= 0 || this.x >= window.innerWidth - 50) this.dx *= -1;
+                if(this.y <= 0 || this.y >= window.innerHeight - 50) this.dy *= -1;
+                this.el.style.left = this.x + 'px'; this.el.style.top = this.y + 'px';
+            }
+        }
+
+        const movers = {
+            gold: new Mover(document.getElementById('gold-square'), 3),
+            fren: new Mover(document.getElementById('fren-square'), 4),
+            fren2: new Mover(document.getElementById('fren2-square'), 5)
+        };
+
+        function handleSquareClick() {
+            if(!gameActive) return;
+            let base = 1;
+            if(gameState.hasUltramoneyadder) base += 2;
+            
+            let gain = base;
+            if(gameState.hasCooler) gain += 1;
+            if(gameState.hasFan) gain += 1;
+            if(gameState.hasTable) gain += 2;
+            
+            if(gameState.hasClock) gain *= 1.25;
+            if(gameState.hasChair) gain *= 1.35;
+            if(gameState.hasFren2) gain *= 1.3;
+            if(gameState.hasStock) gain *= 2.5;
+            if(gameState.hasFren) gain *= 2;
+            if(gameState.hasUltramultiplier) gain *= 2;
+            if(gameState.hasFinality) gain *= 5;
+            
+            gameState.money = Math.floor(gameState.money + gain);
+            updateUI();
+        }
+
+        document.getElementById('gold-square').onclick = handleSquareClick;
+
+        function buySurvival(type) {
+            if(gameState.money >= 20) {
+                gameState.money -= 20;
+                type === 'food' ? gameState.hunger = Math.min(100, gameState.hunger + 30) : gameState.thirst = Math.min(100, gameState.thirst + 30);
+                updateUI();
+            }
+        }
+
+        function buyUpgrade(type, cost) {
+            if(gameState.money >= cost) {
+                gameState.money -= cost;
+                gameState['has' + type.charAt(0).toUpperCase() + type.slice(1)] = true;
+                if(type === 'autoclick' || type === 'autoupgrade') startAutoclicker();
+                if(type === 'ultracoin') startUltraGeneration();
+                updateUI();
+            }
+        }
+
+        function buyUltraUpgrade(type, cost) {
+            if(gameState.ultraCoins >= cost) {
+                gameState.ultraCoins -= cost;
+                gameState['has' + type.charAt(0).toUpperCase() + type.slice(1)] = true;
+                if(type === 'ultrafaster' || type === 'ultramore') startUltraGeneration();
+                if(type === 'ultraclicker') startAutoclicker();
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('money-display').innerText = gameState.money.toLocaleString();
+            document.getElementById('menu-money').innerText = gameState.money.toLocaleString();
+            document.getElementById('ultra-display').innerText = gameState.ultraCoins;
+            document.getElementById('hunger-fill').style.width = gameState.hunger + '%';
+            document.getElementById('thirst-fill').style.width = gameState.thirst + '%';
+            
+            document.getElementById('fren-square').style.display = gameState.hasFren ? 'block' : 'none';
+            document.getElementById('fren2-square').style.display = gameState.hasFren2 ? 'block' : 'none';
+            document.getElementById('fan-display').style.display = gameState.hasFan ? 'block' : 'none';
+            document.getElementById('table-display').style.display = gameState.hasTable ? 'block' : 'none';
+            document.getElementById('clock-display').style.display = gameState.hasClock ? 'block' : 'none';
+            document.getElementById('chair-display').style.display = gameState.hasChair ? 'block' : 'none';
+            document.getElementById('ultra-coin-ui').style.display = gameState.hasUltracoin ? 'block' : 'none';
+            document.getElementById('ultra-section').style.display = gameState.hasUltracoin ? 'block' : 'none';
+
+            const moneyUpgrades = ['slow', 'cooler', 'fren', 'fan', 'feeder', 'invest', 'table', 'autoclick', 'clock', 'chair', 'fren2', 'autoupgrade', 'ultracoin', 'stock', 'finality'];
+            moneyUpgrades.forEach(u => {
+                const btn = document.getElementById('buy-' + u);
+                if(gameState['has' + u.charAt(0).toUpperCase() + u.slice(1)]) {
+                    btn.disabled = true; btn.innerText = "OWNED";
+                }
+            });
+
+            const ultraUpgrades = ['ultrafaster', 'ultramore', 'ultraless', 'ultraclicker', 'ultramoneyadder', 'ultramultiplier'];
+            ultraUpgrades.forEach(u => {
+                const btn = document.getElementById('buy-' + u);
+                if(gameState['has' + u.charAt(0).toUpperCase() + u.slice(1)]) {
+                    btn.disabled = true; btn.innerText = "OWNED";
+                }
+            });
+        }
+
+        function startAutoclicker() {
+            if(autoClickInterval) clearInterval(autoClickInterval);
+            let speed = 1600;
+            if(gameState.hasAutoupgrade) speed = 400;
+            if(gameState.hasUltraclicker) speed = 100;
+            
+            if(gameState.hasAutoclick) autoClickInterval = setInterval(() => { if(gameActive) handleSquareClick(); }, speed);
+        }
+
+        function startUltraGeneration() {
+            if(ultraInterval) clearInterval(ultraInterval);
+            let speed = gameState.hasUltrafaster ? 9000 : 10000;
+            ultraInterval = setInterval(() => { 
+                if(gameActive && gameState.hasUltracoin) {
+                    gameState.ultraCoins += gameState.hasUltramore ? 2 : 1;
+                    updateUI();
+                }
+            }, speed);
+        }
+
+        // Tickers
+        setInterval(() => {
+            if(!gameActive) return;
+            
+            // Resource depletion logic based on requested rates
+            let hDrain = gameState.hasUltraless ? (1 / 1.85) : (1 / 1.75);
+            let tDrain = gameState.hasUltraless ? (1 / 1.10) : (1 / 1.00);
+            
+            gameState.hunger -= (hDrain * 0.5); 
+            gameState.thirst -= (tDrain * 0.5);
+
+            if(gameState.hasFeeder && (gameState.hunger < 70 || gameState.thirst < 70)) { 
+                gameState.hunger = 100; gameState.thirst = 100; 
+            }
+            if(gameState.hunger <= 0 || gameState.thirst <= 0) {
+                gameActive = false; document.getElementById('game-over').style.display = 'flex';
+                localStorage.removeItem('pcClickerSave');
+            }
+            updateUI();
+        }, 500);
+
+        setInterval(() => { 
+            if(gameActive) {
+                if(gameState.hasInvest) gameState.money += 95;
+                if(gameState.hasStock) gameState.money += 5000;
+                updateUI();
+            }
+        }, 45000);
+
+        function gameLoop() {
+            if(gameActive) {
+                movers.gold.update();
+                if(gameState.hasFren) movers.fren.update();
+                if(gameState.hasFren2) movers.fren2.update();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function toggleMenu(show) { if(gameActive || !show) document.getElementById('upgrade-menu').style.display = show ? 'block' : 'none'; }
+        function saveGame() { localStorage.setItem('pcClickerSave', JSON.stringify(gameState)); }
+        function confirmDelete() { if(confirm("Wipe all data?")) { localStorage.removeItem('pcClickerSave'); location.reload(); } }
+
+        const saved = localStorage.getItem('pcClickerSave');
+        if(saved) {
+            gameState = Object.assign(gameState, JSON.parse(saved));
+            startAutoclicker();
+            if(gameState.hasUltracoin) startUltraGeneration();
+            updateUI();
+        }
+        gameLoop();
+    </script>
+</body>
+</html>
