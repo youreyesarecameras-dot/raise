@@ -32,44 +32,11 @@
         #fren-square { background-color: #2ecc71; border: 2px solid #27ae60; display: none; }
         #fren2-square { background-color: #e74c3c; border: 2px solid #c0392b; display: none; }
 
-.prop { 
-    position: absolute; 
-    display: none; 
-    z-index: 1; 
-    pointer-events: none; /* This ensures props don't block your clicks */
-}
-
-#fan-display { 
-    top: 20px; 
-    left: 50%; 
-    width: 80px; 
-    animation: fanSpin 1s linear infinite; 
-}
-
-#table-display { 
-    bottom: 0; 
-    left: 50%; 
-    transform: translateX(-50%); 
-    width: 250px; 
-}
-
-#clock-display { 
-    top: 40%; 
-    right: 30px; 
-    width: 60px; 
-}
-
-#chair-display { 
-    bottom: 50px; 
-    left: 15%; 
-    width: 100px; 
-}
-
-#pc-image { 
-    width: 180px; 
-    height: auto; 
-    z-index: 5; /* Keeps PC on top of props */
-}
+.prop { position: absolute; display: none; z-index: 1; }
+        #fan-display { top: 10px; left: 50%; transform: translateX(-50%); width: 80px; }
+        #table-display { bottom: 0; left: 50%; transform: translateX(-50%); width: 300px; }
+        #clock-display { top: 50%; right: 20px; transform: translateY(-50%); width: 60px; }
+        #chair-display { top: 50%; left: 20px; transform: translateY(-50%); width: 70px; }
 
         #pc-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); cursor: pointer; z-index: 2; }
         #pc-image { width: 180px; height: auto; border-radius: 8px; }
@@ -120,8 +87,8 @@
         <button class="btn" style="background:#c0392b; width:auto;" onclick="confirmDelete()">Reset</button>
     </div>
 
-    <img id="fan-display" class="prop" src="https://i.imgur.com/PPZnVcj.png">
-    <img id="table-display" class="prop" src="https://i.imgur.com/mCdlzCi.png">
+    <img id="fan-display" class="prop" src="https://i.imgur.com/mCdlzCi.png">
+    <img id="table-display" class="prop" src="https://i.imgur.com/giMIfcT.png">
     <img id="clock-display" class="prop" src="https://i.imgur.com/dfa2gx4.png">
     <img id="chair-display" class="prop" src="https://i.imgur.com/J68BE4t.png">
 
